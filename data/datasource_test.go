@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 	"runtime"
 	"testing"
 
@@ -338,6 +340,43 @@ func TestMimeTypeWithArg(t *testing.T) {
 			assert.Equal(t, d.expected, mt)
 		})
 	}
+}
+
+func TestNewSource(t *testing.T) {
+
+}
+
+func TestAbsFileURL(t *testing.T) {
+	cwd, _ := os.Getwd()
+	// make this pass on Windows
+	cwd = filepath.ToSlash(cwd)
+	expected := &url.URL{
+		Scheme: "file",
+		Host:   "",
+		Path:   "/tmp/foo",
+	}
+	u, err := absFileURL("/tmp/foo")
+	assert.NoError(t, err)
+	assert.EqualValues(t, expected, u)
+
+	expected = &url.URL{
+		Scheme: "file",
+		Host:   "",
+		Path:   cwd + "/tmp/foo",
+	}
+	u, err = absFileURL("tmp/foo")
+	assert.NoError(t, err)
+	assert.EqualValues(t, expected, u)
+
+	expected = &url.URL{
+		Scheme:   "file",
+		Host:     "",
+		Path:     cwd + "/tmp/foo",
+		RawQuery: "q=p",
+	}
+	u, err = absFileURL("tmp/foo?q=p")
+	assert.NoError(t, err)
+	assert.EqualValues(t, expected, u)
 }
 
 func TestFromConfig(t *testing.T) {

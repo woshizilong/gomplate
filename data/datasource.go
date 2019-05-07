@@ -7,6 +7,8 @@ import (
 	"mime"
 	"net/http"
 	"net/url"
+	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -14,6 +16,7 @@ import (
 
 	"github.com/pkg/errors"
 
+	"github.com/hairyhenderson/gomplate/v3/datasources"
 	"github.com/hairyhenderson/gomplate/v3/internal/config"
 	"github.com/hairyhenderson/gomplate/v3/libkv"
 	"github.com/hairyhenderson/gomplate/v3/vault"
@@ -229,6 +232,64 @@ func (s *Source) String() string {
 	return fmt.Sprintf("%s=%s (%s)", s.Alias, s.URL.String(), s.mediaType)
 }
 
+// parseSource creates a *Source by parsing the value provided to the
+// --datasource/-d commandline flag
+func parseSource(value string) (source *Source, err error) {
+	source = &Source{}
+	parts := strings.SplitN(value, "=", 2)
+	f := parts[0]
+	if len(parts) == 1 {
+		source.Alias = strings.SplitN(value, ".", 2)[0]
+		if path.Base(f) != f {
+			err = errors.Errorf("Invalid datasource (%s). Must provide an alias with files not in working directory", value)
+			return nil, err
+		}
+	} else if len(parts) == 2 {
+		source.Alias = parts[0]
+		f = parts[1]
+	}
+	source.URL, err = datasources.ParseSourceURL(f)
+	if err != nil {
+		return nil, err
+	}
+
+	if volName != "" {
+		if strings.HasPrefix(srcURL.Path, "/") && srcURL.Path[2] == ':' {
+			srcURL.Path = srcURL.Path[1:]
+		}
+	}
+
+	if !srcURL.IsAbs() {
+		srcURL, err = absFileURL(value)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return srcURL, nil
+}
+
+func absFileURL(value string) (*url.URL, error) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return nil, errors.Wrapf(err, "can't get working directory")
+	}
+	urlCwd := filepath.ToSlash(cwd)
+	baseURL := &url.URL{
+		Scheme: "file",
+		Path:   urlCwd + "/",
+	}
+	relURL, err := url.Parse(value)
+	if err != nil {
+		return nil, fmt.Errorf("can't parse value %s as URL: %w", value, err)
+	}
+	resolved := baseURL.ResolveReference(relURL)
+	// deal with Windows drive letters
+	if !strings.HasPrefix(urlCwd, "/") && resolved.Path[2] == ':' {
+		resolved.Path = resolved.Path[1:]
+	}
+	return resolved, nil
+}
+
 // DefineDatasource -
 func (d *Data) DefineDatasource(alias, value string) (string, error) {
 	if alias == "" {
@@ -237,7 +298,7 @@ func (d *Data) DefineDatasource(alias, value string) (string, error) {
 	if d.DatasourceExists(alias) {
 		return "", nil
 	}
-	srcURL, err := config.ParseSourceURL(value)
+	srcURL, err := datasources.ParseSourceURL(value)
 	if err != nil {
 		return "", err
 	}
