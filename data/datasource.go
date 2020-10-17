@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -230,42 +229,6 @@ func (s *Source) mimeType(arg string) (mimeType string, err error) {
 // The String method's output will be used in diagnostics.
 func (s *Source) String() string {
 	return fmt.Sprintf("%s=%s (%s)", s.Alias, s.URL.String(), s.mediaType)
-}
-
-// parseSource creates a *Source by parsing the value provided to the
-// --datasource/-d commandline flag
-func parseSource(value string) (source *Source, err error) {
-	source = &Source{}
-	parts := strings.SplitN(value, "=", 2)
-	f := parts[0]
-	if len(parts) == 1 {
-		source.Alias = strings.SplitN(value, ".", 2)[0]
-		if path.Base(f) != f {
-			err = errors.Errorf("Invalid datasource (%s). Must provide an alias with files not in working directory", value)
-			return nil, err
-		}
-	} else if len(parts) == 2 {
-		source.Alias = parts[0]
-		f = parts[1]
-	}
-	source.URL, err = datasources.ParseSourceURL(f)
-	if err != nil {
-		return nil, err
-	}
-
-	if volName != "" {
-		if strings.HasPrefix(srcURL.Path, "/") && srcURL.Path[2] == ':' {
-			srcURL.Path = srcURL.Path[1:]
-		}
-	}
-
-	if !srcURL.IsAbs() {
-		srcURL, err = absFileURL(value)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return srcURL, nil
 }
 
 func absFileURL(value string) (*url.URL, error) {
