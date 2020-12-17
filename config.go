@@ -126,14 +126,21 @@ func (o *Config) toNewConfig() (*config.Config, error) {
 		OutMode:     o.OutMode,
 		LDelim:      o.LDelim,
 		RDelim:      o.RDelim,
-		Templates:   o.Templates,
 		OutWriter:   o.Out,
 	}
 	err := cfg.ParsePluginFlags(o.Plugins)
 	if err != nil {
 		return nil, err
 	}
-	err = cfg.ParseDataSourceFlags(o.DataSources, o.Contexts, o.DataSourceHeaders)
+	err = cfg.ParseDataSourceFlags(o.DataSources, o.Contexts)
+	if err != nil {
+		return nil, err
+	}
+	err = cfg.ParseTemplateFlags(o.Templates)
+	if err != nil {
+		return nil, err
+	}
+	err = cfg.ParseHeaderFlags(o.DataSourceHeaders)
 	if err != nil {
 		return nil, err
 	}

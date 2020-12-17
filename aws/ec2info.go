@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"context"
 	"net/http"
 	"os"
 	"strconv"
@@ -60,7 +61,13 @@ func GetClientOptions() ClientOptions {
 }
 
 // SDKSession -
+// Deprecated: use Session instead
 func SDKSession(region ...string) *session.Session {
+	return Session(context.TODO(), region...)
+}
+
+// Session -
+func Session(ctx context.Context, region ...string) *session.Session {
 	sdkSessionInit.Do(func() {
 		options := GetClientOptions()
 		timeout := options.Timeout
