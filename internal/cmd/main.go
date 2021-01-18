@@ -110,7 +110,7 @@ func NewGomplateCmd() *cobra.Command {
 			// to stdout, since otherwise the shell prompt may look wrong
 			// TODO: consider only doing this if stdout doesn't have a trailing
 			// newline already.
-			if len(cfg.OutputFiles) == 0 || (len(cfg.OutputFiles) == 1 && cfg.OutputFiles[0] == "-") &&
+			if (cfg.InputDir == "" && cfg.OutputDir == "") && len(cfg.OutputFiles) == 0 || (len(cfg.OutputFiles) == 1 && cfg.OutputFiles[0] == "-") &&
 				!cfg.ExecPipe && cfg.Stdout == os.Stdout {
 				fmt.Fprintf(cmd.ErrOrStderr(), "\n")
 			}
